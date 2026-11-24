@@ -4,6 +4,7 @@ import type { Authenticator } from "./auth.js";
 import type { BotProfile } from "./bots.js";
 import { type Ctx, type Deps, HttpError, profileFor } from "./context.js";
 import { dailySummary } from "./domain/summary.js";
+import { checkMissedDoses, checkPriceWatches } from "./jobs.js";
 import { PERCEPTION_KINDS, perceive, type PerceptionKind } from "./perception.js";
 import { CARE_SCOPES, type CareScope } from "./store.js";
 import { runTool, toolSchemasFor } from "./tools.js";
@@ -11,7 +12,7 @@ import { XaiError } from "./xai.js";
 
 const BotRef = z.object({ botId: z.string() });
 
-export function buildServer(deps: Deps, authenticate: Authenticator) {
+export function buildServer(deps: Deps, authenticate: Authenticator, opts: { cronSecret?: string } = {}) {
   // Camera frames arrive as base64 JPEGs; allow a few per request.
   const app = Fastify({ bodyLimit: 12 * 1024 * 1024, logger: false });
 
@@ -48,6 +49,19 @@ export function buildServer(deps: Deps, authenticate: Authenticator) {
   }
 
   app.get("/health", async () => ({ ok: true }));
+
+  // Scheduled jobs (Vercel Cron, Supabase pg_cron, or any scheduler) send the shared secret.
+  app.get<{ Params: { job: string } }>("/v1/jobs/:job", async (req) => {
+    if (!opts.cronSecret || req.headers.authorization !== `Bearer ${opts.cronSecret}`) throw new HttpError(401, "bad job secret");
+    switch (req.params.job) {
+      case "missed-doses":
+        return { alertsRaised: await checkMissedDoses(deps) };
+      case "price-watches":
+        return { salesFound: await checkPriceWatches(deps) };
+      default:
+        throw new HttpError(404, "unknown job");
+    }
+  });
 
   app.get("/v1/bots", async (req) => {
     await userId(req);

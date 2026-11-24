@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -40,9 +40,17 @@ export const BotProfileSchema = z.object({
 });
 export type BotProfile = z.infer<typeof BotProfileSchema>;
 
-const defaultDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bots");
+const here = dirname(fileURLToPath(import.meta.url));
 
-export function loadBots(dir = defaultDir): Map<string, BotProfile> {
+/** Repo checkout: <repo>/bots. Deployed bundle: <backend>/bots (copied by the build script). */
+function defaultDir(): string {
+  const candidates = [process.env.BOTS_DIR, join(here, "..", "..", "bots"), join(here, "..", "bots"), join(process.cwd(), "bots")];
+  const found = candidates.find((d) => d && existsSync(join(d, "chief.json")));
+  if (!found) throw new Error(`bot profiles not found (looked in ${candidates.filter(Boolean).join(", ")})`);
+  return found;
+}
+
+export function loadBots(dir = defaultDir()): Map<string, BotProfile> {
   const bots = new Map<string, BotProfile>();
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     const bot = BotProfileSchema.parse(JSON.parse(readFileSync(join(dir, file), "utf8")));

@@ -139,3 +139,18 @@ bots without one still work by voice and from the panel.
 - [ ] Avatars with the standard animation set; lip-sync morph target
 - [ ] Verify Instacart field names and xAI client-secret options against live docs
 - [ ] Glasses-specific UI (Jetpack Compose Glimmer) for Project Aura
+
+## Deploying the backend (Supabase + Vercel)
+
+1. **Supabase project**: apply `supabase/migrations/20261124000000_init.sql`. Turn on Google sign-in
+   under Authentication → Providers.
+2. **Vercel project** from this repo with **Root Directory = `backend`** (it uses `backend/vercel.json`
+   and `backend/api/index.ts`). Environment variables:
+   - `XAI_API_KEY`: your xAI key (Vercel dashboard only, never in chat or git)
+   - `DATABASE_URL`: Supabase transaction-pooler connection string (port 6543)
+   - `SUPABASE_JWKS_URL`: `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`
+   - `CRON_SECRET`: any long random string
+3. **Schedules**: Vercel's free plan runs crons once a day, which is fine for price checks. For
+   missed-dose alerts every 10 minutes, schedule `GET /v1/jobs/missed-doses` with header
+   `Authorization: Bearer <CRON_SECRET>` from Supabase (pg_cron + pg_net) or any scheduler.
+4. Build the app with `-Pgbxr.backendUrl=https://<your-vercel-domain>`.

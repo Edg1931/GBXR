@@ -11,6 +11,10 @@ export interface Config {
   instacartBaseUrl: string;
   krogerClientId?: string;
   krogerClientSecret?: string;
+  /** Postgres connection string (Supabase transaction pooler). Unset = in-memory store. */
+  databaseUrl?: string;
+  /** Shared secret the scheduler sends to /v1/jobs/* (Vercel sets CRON_SECRET for its crons). */
+  cronSecret?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -28,5 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     instacartBaseUrl: opt("INSTACART_BASE_URL") ?? "https://connect.dev.instacart.tools",
     krogerClientId: opt("KROGER_CLIENT_ID"),
     krogerClientSecret: opt("KROGER_CLIENT_SECRET"),
+    databaseUrl: opt("DATABASE_URL"),
+    cronSecret: opt("CRON_SECRET"),
   };
 }

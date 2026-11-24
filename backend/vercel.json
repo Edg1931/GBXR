@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run vercel-build",
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "functions": {
+    "api/index.ts": { "includeFiles": "bots/**", "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/v1/jobs/price-watches", "schedule": "17 13 * * *" },
+    { "path": "/v1/jobs/missed-doses", "schedule": "23 1 * * *" }
+  ]
+}

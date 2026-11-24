@@ -41,6 +41,8 @@ create table tasks (
   details text not null default '',
   status text not null check (status in ('queued', 'running', 'done', 'failed')),
   result text,
+  mission_id uuid,               -- set when a leader bot (Chief) handed this out
+  assigned_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -122,7 +124,8 @@ create table notifications (
   user_id uuid not null references auth.users on delete cascade,
   bot_id text not null,
   text text not null,
-  at timestamptz not null default now()
+  at timestamptz not null default now(),
+  task_id uuid
 );
 
 -- Exactly-once markers for background jobs (service role only; no policies).
