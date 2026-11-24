@@ -6,13 +6,18 @@ import androidx.xr.arcore.Anchor
 import androidx.xr.arcore.AnchorCreateSuccess
 import androidx.xr.arcore.ArDevice
 import androidx.xr.arcore.hitTest
-import androidx.xr.runtime.Config
+import androidx.xr.runtime.AnchorPersistenceMode
+import androidx.xr.runtime.DeviceTrackingMode
+import androidx.xr.runtime.PlaneTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Ray
 import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.AnchorEntity
+import androidx.xr.scenecore.AnchorSpace
+import androidx.xr.scenecore.ExperimentalGltfAnimationApi
+import androidx.xr.scenecore.GltfAnimation
+import androidx.xr.scenecore.GltfAnimationStartOptions
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
 import com.gbxr.core.behavior.BotState
@@ -22,11 +27,8 @@ import java.nio.file.Paths
 import java.util.UUID
 
 /**
- * ⚠️ The only file that uses Jetpack XR (runtime, SceneCore, ARCore for
- * Jetpack XR). Those libraries are pre-release and were not compiled in the
- * environment this was written in. Expect to adjust names (e.g. glTF APIs moved
- * to GltfModelNode in Developer Preview 4) when you open it in Android Studio.
- * The rest of the app only talks to this class, so fixes stay here.
+ * The only file that uses Jetpack XR (runtime, SceneCore, ARCore for Jetpack
+ * XR 1.0). The rest of the app only talks to this class.
  *
  * Responsibilities:
  *  - start an XR session (or report "not XR" so the app runs in 2D mode)
@@ -38,6 +40,7 @@ class XrStage(private val activity: Activity) {
     private lateinit var session: Session
     private val anchors = mutableMapOf<String, Anchor>() // anchorId -> anchor
     private val avatars = mutableMapOf<String, GltfModelEntity>() // botId -> avatar
+    private val playing = mutableMapOf<String, GltfAnimation>() // botId -> current animation
     private val prefs = activity.getSharedPreferences("gbxr_anchors", Context.MODE_PRIVATE)
 
     /** False on phones/tablets: the app falls back to the 2D companion screen. */
@@ -46,9 +49,9 @@ class XrStage(private val activity: Activity) {
         session = (result as? SessionCreateSuccess)?.session ?: return false
         session.configure(
             session.config.copy(
-                planeTracking = Config.PlaneTrackingMode.HORIZONTAL_AND_VERTICAL, // desks and fridge doors
-                headTracking = Config.HeadTrackingMode.LAST_KNOWN,
-                anchorPersistence = Config.AnchorPersistenceMode.LOCAL,
+                planeTracking = PlaneTrackingMode.HORIZONTAL_AND_VERTICAL, // desks and fridge doors
+                deviceTracking = DeviceTrackingMode.LAST_KNOWN, // head pose for gaze triggers
+                anchorPersistence = AnchorPersistenceMode.LOCAL, // bots stay where you put them
             ),
         )
         return true
@@ -91,8 +94,16 @@ class XrStage(private val activity: Activity) {
         prefs.edit().remove(anchorId).apply()
     }
 
+    /** Plays the avatar animation named after the state (falls back to "idle"). */
+    @OptIn(ExperimentalGltfAnimationApi::class)
     fun play(botId: String, state: BotState) {
-        avatars[botId]?.startAnimation(loop = state != BotState.NOTICING, animationName = state.animation)
+        val avatar = avatars[botId] ?: return
+        val anim = avatar.animations.firstOrNull { it.name == state.animation }
+            ?: avatar.animations.firstOrNull { it.name == BotState.IDLE.animation }
+            ?: return
+        playing.remove(botId)?.takeIf { it !== anim }?.stop()
+        anim.start(GltfAnimationStartOptions(state != BotState.NOTICING))
+        playing[botId] = anim
     }
 
     /** Lip-sync: 0..1 mouth openness from the bot's voice loudness. */
@@ -110,7 +121,7 @@ class XrStage(private val activity: Activity) {
     private suspend fun attachAvatar(bot: BotProfile, anchor: Anchor) {
         val model = GltfModel.create(session, Paths.get("avatars", bot.avatar))
         val entity = GltfModelEntity.create(session, model)
-        entity.setParent(AnchorEntity.create(session, anchor))
+        entity.parent = AnchorSpace.create(session, anchor) // follows the anchor in the room
         entity.setScale(0.15f) // desk-sized companions
         avatars[bot.id] = entity
         play(bot.id, BotState.IDLE)
