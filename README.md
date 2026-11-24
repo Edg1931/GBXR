@@ -1,0 +1,132 @@
+# GBXR — Grok bots that live in your room
+
+GBXR puts a crew of voice bots, each with its own personality, voice and job,
+into Android XR (Galaxy XR headset, Project Aura glasses). They also run on a
+plain phone or tablet. Bots sit on your desk or at a spot in your home, wake
+up when you come over, look at what's in front of you, talk with you in their
+own voice, and take on work in the background.
+
+It's built for two audiences that share one engine:
+
+- **Senior care**: bots that live where the task happens:
+  - Pantry on the fridge
+  - Pip by the pill organizer
+  - Walter at the front door
+  - Sentry the scam guard at the mail table
+  - Scout the object finder
+  - Rose the story-keeping companion
+  - Coach Max for balance exercise
+
+  Family members see a daily summary and alerts, limited to what the senior
+  chooses to share.
+- **Everyone**: a desk crew (Nova the researcher, Juno the scheduler) you can
+  talk to and delegate work to.
+
+## How it works
+
+```
+ Android XR app / phone app                 Backend (this repo)               xAI
+ ┌──────────────────────────┐   HTTPS   ┌───────────────────────────┐
+ │ XrStage: anchors, avatars│──────────▶│ /v1/voice/session ────────┼──▶ client secret
+ │ BotDirector (core)       │           │ /v1/perception  ──────────┼──▶ Grok vision
+ │  PlaceBotEngine          │           │ /v1/tools/:name           │
+ │  BotStateMachine         │           │ caregiver summary/alerts  │──▶ Instacart, Kroger,
+ │  SpeakPolicy, meds       │           │ jobs: missed doses, sales │    Open-Meteo
+ │ Mic/speaker ◀────────────┼── WSS ────┼───────────────────────────┼──▶ Grok Voice (realtime)
+ └──────────────────────────┘           └───────────────────────────┘
+```
+
+1. **Placement**: you drop a bot on a surface. It stays there as a persistent
+   spatial anchor.
+2. **Wake**: the bot wakes when you look at its spot from close by (with a
+   scene-change check, e.g. the fridge door opening) or at scheduled times
+   (medicine at 8:00).
+3. **Look**: bots with a camera job take 1–2 photos only at that moment. The
+   backend asks Grok vision for structured results: fridge inventory, pills
+   seen, a mail scam review, objects seen.
+4. **Think**: the backend compares the results with what it already knows. It
+   updates the shopping list, matches pills to your medicine list, and raises
+   caregiver alerts.
+5. **Talk**: each bot has its own realtime voice session with its own voice and
+   instructions. The app gets a short-lived token, so the xAI key never leaves
+   the server. A speak policy keeps low-priority chatter rate-limited and
+   quiet at night. Urgent things always get through.
+6. **Act**: the voice model calls tools. The backend enforces each bot's tool
+   list. Delegated tasks run in the background, the bot shows a "working"
+   pose, and it comes back to report when the task finishes.
+7. **Not wearing the glasses?** Reminders go to the phone or tablet instead.
+
+## Repository layout
+
+| Path | What | Status |
+|---|---|---|
+| `bots/` | Bot profiles (personality, voice, instructions, tools, placement) | Shared by app and backend |
+| `core/` | Pure-Kotlin engine: placement triggers, state machine, speak policy, medication schedule, realtime voice client, backend client, `BotDirector` | **Built and tested here** (17 tests) |
+| `backend/` | TypeScript/Fastify: voice sessions, camera checks, tools, caregiver sharing, jobs | **Built and tested here** (16 tests) |
+| `supabase/migrations/` | Postgres schema with row-level security for multi-user and caregiver scopes | **Checked on Postgres 16** |
+| `android/` | Android XR + phone app: audio, CameraX, XR stage, 2D companion UI | **Not compiled yet**: needs the Android SDK (see below) |
+
+## Running it
+
+### Backend
+```bash
+cd backend
+npm install
+cp .env.example .env      # add XAI_API_KEY; DEV_AUTH=1 for local testing
+npm test
+npm run dev               # http://localhost:8787
+```
+
+### Core engine tests
+```bash
+gradle :core:test
+```
+
+### Android app
+Open the repo in Android Studio (the `:android` module is included once an SDK
+is configured), update the Jetpack XR versions in `android/build.gradle.kts`,
+and run it on the Android XR emulator, a Galaxy XR headset, or a phone. Pass
+`-Pgbxr.backendUrl=https://your-server` to point it at a deployed backend.
+`android/src/main/kotlin/com/gbxr/app/xr/XrStage.kt` and `xr/XrPanel.kt` are the
+only files that use the pre-release XR APIs. Expect to fix a few names there on
+first build. Avatars (`.glb`) go in `android/src/main/assets/avatars/`.
+
+## Accounts: you and everyone else
+
+- **Sign-in**: Supabase Auth (Google sign-in). The backend verifies the
+  session JWT and keys all data by user id. Row-level security enforces the
+  same rules in the database.
+- **Paying for Grok**: the server holds one xAI key and mints short-lived
+  voice tokens. Options for other users, in order of simplicity: meter usage
+  and charge a subscription; let users bring their own xAI key (stored
+  encrypted server-side); or "sign in with xAI" once xAI officially supports
+  it for third-party apps.
+- **Family access**: a senior grants a caregiver specific scopes (`meds`,
+  `meals`, `activity`, `stories`, `safety`, `mood`, `messages`). Summaries and
+  alerts only include those scopes. The summary text is built from logged facts,
+  not written by the AI.
+
+## Safety and privacy (senior care)
+
+- Reminders and logging only. **Not a medical device and not an emergency
+  service.** Bots tell people to call 911 or press their alert button. Connect
+  a real medical-alert/fall-detection service rather than relying on the bot.
+- A dose is never logged from a photo. The person confirms out loud, and the
+  bot refuses to log the same dose twice.
+- Photos are taken only when a bot wakes. The scene-change check uses a tiny
+  on-device thumbnail that is never stored or uploaded.
+- Visitor recognition only uses names the family registered. Bots never guess
+  who a stranger is.
+- Before handling health data with care providers, check HIPAA obligations and
+  whether xAI will sign a BAA.
+
+## Next steps
+
+- [ ] Supabase-backed `Store` (replace `MemoryStore`) and supabase-kt sign-in in the app
+- [ ] Compile the Android module; fix XR API names against the current Jetpack XR release
+- [ ] Move phone reminders to AlarmManager/WorkManager so they survive the app being closed
+- [ ] Caregiver web dashboard (summary + alerts endpoints are ready)
+- [ ] Push notifications for urgent caregiver alerts (FCM)
+- [ ] Avatars with the standard animation set; lip-sync morph target
+- [ ] Verify Instacart field names and xAI client-secret options against live docs
+- [ ] Glasses-specific UI (Jetpack Compose Glimmer) for Project Aura

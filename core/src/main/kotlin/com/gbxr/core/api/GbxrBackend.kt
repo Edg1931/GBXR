@@ -81,6 +81,10 @@ class GbxrBackend(
         })
     }
 
+    /** The signed-in user's medicines, for offline reminders. */
+    fun medications(): List<com.gbxr.core.care.Medication> =
+        json.decodeFromString(ListSerializer(com.gbxr.core.care.Medication.serializer()), get("/v1/meds"))
+
     /** Pending bot messages (sale alerts, finished tasks); each is returned once. */
     override fun notifications(): List<BotNotification> =
         json.decodeFromString(ListSerializer(BotNotification.serializer()), get("/v1/notifications"))
