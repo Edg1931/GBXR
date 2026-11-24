@@ -74,6 +74,8 @@ class BotDirector(
     private val engine = PlaceBotEngine()
     private val machines = bots.associate { it.id to BotStateMachine() }
     private val links = mutableMapOf<String, VoiceLink>()
+    /** Messages held during quiet hours / rate limits, told when you next talk to the bot. */
+    private val held = mutableMapOf<String, MutableList<String>>()
     private val json = Json { ignoreUnknownKeys = true }
     @Volatile private var worn = true
     @Volatile private var lastFrame: SensorFrame? = null
@@ -94,8 +96,16 @@ class BotDirector(
     /** "Hey Nova" / tapping a bot / looking at a desk bot and talking. */
     fun summon(botId: String) {
         signal(botId, BotSignal.Wake)
-        io.execute { ensureVoice(bot(botId)) }
+        io.execute {
+            val link = ensureVoice(bot(botId))
+            val waiting = synchronized(held) { held.remove(botId) }
+            if (link != null && !waiting.isNullOrEmpty()) {
+                link.say("While you were away: " + waiting.joinToString(" Also: "))
+            }
+        }
     }
+
+    fun heldMessages(botId: String): List<String> = synchronized(held) { held[botId].orEmpty().toList() }
 
     fun dismiss(botId: String) {
         signal(botId, BotSignal.Dismissed)
@@ -158,7 +168,14 @@ class BotDirector(
         val time = frame?.now?.toLocalTime() ?: LocalDateTime.now().toLocalTime()
         val elapsed = frame?.elapsedMillis ?: 0L
         if (!policy.shouldSpeak(priority, time, elapsed)) {
-            signal(bot.id, BotSignal.Dismissed)
+            if (priority == Priority.LOW) {
+                signal(bot.id, BotSignal.Dismissed) // chatter: just drop it
+            } else {
+                // Worth telling later: keep it, and look like it has something for you.
+                synchronized(held) { held.getOrPut(bot.id) { mutableListOf() } += text }
+                signal(bot.id, BotSignal.Wake)
+                stage.showCaption(bot.id, "Has news for you")
+            }
             return
         }
         if (!worn) {
@@ -198,13 +215,29 @@ class BotDirector(
         override fun onToolCall(callId: String, name: String, argumentsJson: String) = io.execute {
             val output = runCatching { backend.callTool(bot.id, name, argumentsJson) }
                 .getOrElse { """{"error":"${(it.message ?: "failed").replace("\"", "'")}"}""" }
-            if (name == "create_task") taskIdFrom(output)?.let { signal(bot.id, BotSignal.TaskStarted(it)) }
+            when (name) {
+                "create_task" -> taskIdFrom(output)?.let { signal(bot.id, BotSignal.TaskStarted(it)) }
+                // The leader hands out work: each teammate visibly gets to work.
+                "delegate_to_bot" -> assignmentsFrom(output).forEach { (taskId, workerId) ->
+                    signal(workerId, BotSignal.Wake)
+                    signal(workerId, BotSignal.TaskStarted(taskId))
+                }
+            }
             links[bot.id]?.sendToolResult(callId, output)
         }
         override fun onClosed() {
             links.remove(bot.id)
         }
     }
+
+    private fun assignmentsFrom(output: String): List<Pair<String, String>> = runCatching {
+        (json.parseToJsonElement(output).jsonObject["tasks"] as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull {
+            val o = it.jsonObject
+            val taskId = o["taskId"]?.jsonPrimitive?.contentOrNull
+            val botId = o["botId"]?.jsonPrimitive?.contentOrNull
+            if (taskId != null && botId != null) taskId to botId else null
+        }
+    }.getOrDefault(emptyList())
 
     private fun taskIdFrom(output: String): String? = runCatching {
         json.parseToJsonElement(output).jsonObject["taskId"]?.jsonPrimitive?.contentOrNull

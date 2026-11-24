@@ -25,6 +25,8 @@ data class BotProfile(
     /** Tool names this bot may call; the backend enforces the same list. */
     val tools: List<String> = emptyList(),
     val idleBehaviors: List<String> = emptyList(),
+    /** How the bot looks; drives its avatar, props and signature moves. */
+    val appearance: Appearance? = null,
     /** Present only for bots that live at a place (fridge, pill box, door...). */
     val placement: Placement? = null,
 ) {
@@ -33,6 +35,24 @@ data class BotProfile(
         fun parse(text: String): BotProfile = json.decodeFromString(serializer(), text)
     }
 }
+
+/**
+ * The character's look. Personality should show in the body: a secretary
+ * checks her clipboard, a salesperson flashes a thumbs up, a nerd pushes up
+ * his glasses. `signatureMoves` are animation names on the avatar.
+ */
+@Serializable
+data class Appearance(
+    /** One-line archetype, e.g. "Executive secretary". */
+    val archetype: String,
+    val outfit: String,
+    /** Hex colors for the outfit and UI accents; the first is the main color. */
+    val palette: List<String> = emptyList(),
+    val props: List<String> = emptyList(),
+    val signatureMoves: List<String> = emptyList(),
+    /** Body language and posture, for animators and the avatar generator. */
+    val bodyLanguage: String = "",
+)
 
 @Serializable
 enum class Audience {

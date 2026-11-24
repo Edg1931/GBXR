@@ -13,7 +13,9 @@
   ],
   "idleBehaviors": [
     "knit",
-    "look_at_photos"
+    "look_at_photos",
+    "sip_tea",
+    "laugh_softly"
   ],
   "placement": {
     "anchorLabel": "Favorite chair",
@@ -28,5 +30,26 @@
         "windowMinutes": 120
       }
     ]
+  },
+  "appearance": {
+    "archetype": "Warm grandmother",
+    "outfit": "Lavender knit cardigan, floral dress, reading glasses, slippers",
+    "palette": [
+      "#B497D6",
+      "#FCE7F3",
+      "#6B4F3A"
+    ],
+    "props": [
+      "knitting",
+      "photo album",
+      "teacup"
+    ],
+    "signatureMoves": [
+      "knit",
+      "look_at_photos",
+      "sip_tea",
+      "laugh_softly"
+    ],
+    "bodyLanguage": "Settled in a tiny armchair, leans in to listen"
   }
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { BotProfile } from "./bots.js";
 import { type Ctx, HttpError, raiseAlert } from "./context.js";
 import { occurrences } from "./domain/meds.js";
 import { currentWeather } from "./integrations/weather.js";
@@ -29,23 +30,82 @@ function tool<A extends z.ZodTypeAny>(def: ToolDef<A>) {
   return def;
 }
 
-async function runTask(ctx: Ctx, task: Task) {
-  const save = (patch: Partial<Task>) => ctx.store.putTask({ ...task, ...patch, updatedAt: ctx.now().toISOString() });
+/** Runs a task as `worker` (its own instructions and voice report it back). */
+async function runTask(ctx: Ctx, task: Task, worker: BotProfile = ctx.bot) {
+  const save = (patch: Partial<Task>) => {
+    Object.assign(task, patch, { updatedAt: ctx.now().toISOString() });
+    return ctx.store.putTask({ ...task });
+  };
   try {
     await save({ status: "running" });
     const result = await ctx.xai.complete({
-      system: `${ctx.bot.instructions}\nYou are completing a delegated task. Produce a concise, well-organized result the bot can read aloud in under a minute, followed by details.`,
+      system: `${worker.instructions}\nYou are completing a delegated task. Produce a concise, well-organized result the bot can read aloud in under a minute, followed by details.`,
       prompt: `Task: ${task.title}\n\nDetails: ${task.details}`,
     });
-    Object.assign(task, { status: "done", result });
     await save({ status: "done", result });
-    await ctx.store.notify({ userId: ctx.userId, botId: ctx.bot.id, text: `Task finished: ${task.title}`, at: ctx.now().toISOString(), taskId: task.id });
+    await ctx.store.notify({ userId: ctx.userId, botId: worker.id, text: `Task finished: ${task.title}`, at: ctx.now().toISOString(), taskId: task.id });
   } catch (e) {
     await save({ status: "failed", result: e instanceof Error ? e.message : String(e) });
   }
+  if (task.missionId && task.assignedBy) await reportMissionIfDone(ctx, task.missionId, task.assignedBy);
+}
+
+/** When every piece of a leader's mission has finished, the leader reports back. */
+async function reportMissionIfDone(ctx: Ctx, missionId: string, leaderId: string) {
+  const parts = (await ctx.store.listTasks(ctx.userId)).filter((t) => t.missionId === missionId);
+  if (parts.some((t) => t.status === "queued" || t.status === "running")) return;
+  if (!(await ctx.store.claimOnce(`mission-reported:${missionId}`))) return;
+  const failed = parts.filter((t) => t.status === "failed").length;
+  await ctx.store.notify({
+    userId: ctx.userId,
+    botId: leaderId,
+    text: `Mission complete: ${parts.length - failed} of ${parts.length} assignments done${failed ? `, ${failed} failed` : ""}. Summarize the team's results (use list_tasks)`,
+    at: ctx.now().toISOString(),
+  });
 }
 
 export const TOOLS = {
+  delegate_to_bot: tool({
+    description: "Leader only: hand out assignments to teammates. Each teammate works on its piece and reports back; you get a summary when all are done.",
+    args: z.object({
+      goal: z.string().min(1),
+      assignments: z.array(z.object({ botId: z.string(), title: z.string().min(1), details: z.string().default("") })).min(1).max(6),
+    }),
+    parameters: obj(
+      {
+        goal: str("The overall goal, in the user's words"),
+        assignments: {
+          type: "array",
+          items: obj({ botId: str("Teammate id, e.g. 'nova' or 'juno'"), title: str("Short assignment"), details: str("What good looks like") }, ["botId", "title"]),
+        },
+      },
+      ["goal", "assignments"],
+    ),
+    async run(ctx, a) {
+      // Only desk-crew bots that can do background work take assignments.
+      const team = [...ctx.bots.values()].filter((b) => b.audience === "general" && b.id !== ctx.bot.id && b.tools.includes("create_task"));
+      const unknown = a.assignments.filter((x) => !team.some((b) => b.id === x.botId)).map((x) => x.botId);
+      if (unknown.length) return { error: `Not on your team: ${unknown.join(", ")}. Team: ${team.map((b) => b.id).join(", ")}` };
+
+      const missionId = ctx.newId();
+      const now = ctx.now().toISOString();
+      const created = [];
+      for (const x of a.assignments) {
+        const worker = team.find((b) => b.id === x.botId)!;
+        const task: Task = {
+          id: ctx.newId(), userId: ctx.userId, botId: worker.id, title: x.title,
+          details: `Team goal: ${a.goal}\n\n${x.details}`, status: "queued",
+          missionId, assignedBy: ctx.bot.id, createdAt: now, updatedAt: now,
+        };
+        await ctx.store.putTask(task);
+        created.push({ task, worker });
+      }
+      // Start them all, so the user sees the whole team get to work.
+      for (const { task, worker } of created) ctx.background(runTask(ctx, task, worker));
+      return { missionId, tasks: created.map(({ task, worker }) => ({ taskId: task.id, botId: worker.id, title: task.title })) };
+    },
+  }),
+
   create_task: tool({
     description: "Delegate a piece of work to run in the background (research, drafting, planning). The bot reports back when it's done.",
     args: z.object({ title: z.string().min(1), details: z.string().default("") }),

@@ -33,6 +33,9 @@ export interface Task {
   details: string;
   status: "queued" | "running" | "done" | "failed";
   result?: string;
+  /** Set when a leader bot handed this out as part of a bigger goal. */
+  missionId?: string;
+  assignedBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -146,6 +149,8 @@ export interface Store {
   alertsForSenior(seniorId: string): Promise<Alert[]>;
 
   notify(n: Notification): Promise<void>;
+  /** True the first time a key is claimed, false after (exactly-once side effects). */
+  claimOnce(key: string): Promise<boolean>;
   takeNotifications(userId: string): Promise<Notification[]>;
 }
 
@@ -223,6 +228,12 @@ export class MemoryStore implements Store {
   async alertsForSenior(seniorId: string) { return this.alerts.filter((a) => a.seniorId === seniorId); }
 
   async notify(n: Notification) { this.notifications.push(n); }
+  claimed = new Set<string>();
+  async claimOnce(key: string) {
+    if (this.claimed.has(key)) return false;
+    this.claimed.add(key);
+    return true;
+  }
   async takeNotifications(userId: string) {
     const mine = this.notifications.filter((n) => n.userId === userId);
     this.notifications = this.notifications.filter((n) => n.userId !== userId);

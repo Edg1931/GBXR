@@ -12,7 +12,9 @@
     "remember_object_location"
   ],
   "idleBehaviors": [
-    "magnifying_glass"
+    "magnifying_glass",
+    "jot_note",
+    "point_found"
   ],
   "placement": {
     "anchorLabel": "Kitchen counter",
@@ -25,5 +27,25 @@
         "dwellMillis": 2000
       }
     ]
+  },
+  "appearance": {
+    "archetype": "Junior detective",
+    "outfit": "Tan trench coat, deerstalker cap, satchel",
+    "palette": [
+      "#C2A878",
+      "#5C4033",
+      "#FFFFFF"
+    ],
+    "props": [
+      "magnifying glass",
+      "notebook",
+      "flashlight"
+    ],
+    "signatureMoves": [
+      "magnifying_glass",
+      "jot_note",
+      "point_found"
+    ],
+    "bodyLanguage": "Tiptoes and peers around corners, triumphant point when it remembers"
   }
 }

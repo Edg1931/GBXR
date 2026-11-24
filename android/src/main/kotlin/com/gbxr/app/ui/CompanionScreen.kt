@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gbxr.core.behavior.BotState
@@ -44,6 +45,10 @@ fun CompanionScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp)) {
                     Text(bot.name, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)
+                    val look = bot.appearance
+                    if (look != null) {
+                        Text(look.archetype, fontSize = 18.sp, color = accentOf(bot))
+                    }
                     Text(bot.role, fontSize = 18.sp)
                     Text(statusLabel(state), fontSize = 18.sp, modifier = Modifier.padding(top = 4.dp))
                     crew.captions[bot.id]?.let {
@@ -68,6 +73,12 @@ fun CompanionScreen(
         }
     }
 }
+
+/** The bot's main outfit color, so its card matches the character. */
+private fun accentOf(bot: BotProfile): Color =
+    bot.appearance?.palette?.firstOrNull()
+        ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+        ?: Color.Unspecified
 
 private fun statusLabel(s: BotState) = when (s) {
     BotState.SLEEPING -> "Resting"

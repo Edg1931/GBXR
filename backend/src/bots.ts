@@ -19,6 +19,16 @@ export const BotProfileSchema = z.object({
   audience: z.enum(["general", "senior"]).default("general"),
   tools: z.array(z.string()).default([]),
   idleBehaviors: z.array(z.string()).default([]),
+  appearance: z
+    .object({
+      archetype: z.string(),
+      outfit: z.string(),
+      palette: z.array(z.string().regex(/^#[0-9a-fA-F]{6}$/)).default([]),
+      props: z.array(z.string()).default([]),
+      signatureMoves: z.array(z.string()).default([]),
+      bodyLanguage: z.string().default(""),
+    })
+    .optional(),
   placement: z
     .object({
       anchorLabel: z.string(),

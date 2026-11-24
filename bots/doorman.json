@@ -15,7 +15,10 @@
   ],
   "idleBehaviors": [
     "straighten_hat",
-    "check_watch"
+    "check_watch",
+    "tip_cap",
+    "hold_door",
+    "offer_umbrella"
   ],
   "placement": {
     "anchorLabel": "Front door",
@@ -35,5 +38,26 @@
         "windowMinutes": 90
       }
     ]
+  },
+  "appearance": {
+    "archetype": "Classic hotel doorman",
+    "outfit": "Burgundy doorman coat with gold buttons, white gloves, round cap",
+    "palette": [
+      "#7B1E3A",
+      "#D4AF37",
+      "#FFFFFF"
+    ],
+    "props": [
+      "umbrella",
+      "key ring",
+      "pocket watch"
+    ],
+    "signatureMoves": [
+      "tip_cap",
+      "hold_door",
+      "offer_umbrella",
+      "check_watch"
+    ],
+    "bodyLanguage": "Courteous bows, stands at attention by the door"
   }
 }

@@ -13,7 +13,9 @@
   ],
   "idleBehaviors": [
     "stretch",
-    "jog_in_place"
+    "jog_in_place",
+    "demo_move",
+    "clap_encourage"
   ],
   "placement": {
     "anchorLabel": "Living room open space",
@@ -28,5 +30,26 @@
         "windowMinutes": 120
       }
     ]
+  },
+  "appearance": {
+    "archetype": "Cheerful fitness coach",
+    "outfit": "Bright tracksuit, sweatband, sneakers, whistle",
+    "palette": [
+      "#FF6B35",
+      "#004E89",
+      "#FFFFFF"
+    ],
+    "props": [
+      "whistle",
+      "small chair",
+      "water bottle"
+    ],
+    "signatureMoves": [
+      "stretch",
+      "demo_move",
+      "clap_encourage",
+      "jog_in_place"
+    ],
+    "bodyLanguage": "Bouncy but careful, always holds the chair when demonstrating"
   }
 }

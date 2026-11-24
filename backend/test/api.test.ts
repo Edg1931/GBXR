@@ -211,6 +211,43 @@ describe("delegation and companions", () => {
   });
 });
 
+describe("chief leads the team", () => {
+  it("hands out assignments, each teammate reports, and Chief summarizes once", async () => {
+    const t = setup();
+    const r = (await tool(t, "me", "chief", "delegate_to_bot", {
+      goal: "Plan my trip to Denver",
+      assignments: [
+        { botId: "nova", title: "Find 3 hotels near downtown", details: "under $200" },
+        { botId: "juno", title: "Block travel dates on my calendar" },
+      ],
+    })).json();
+    expect(r.tasks.map((x: { botId: string }) => x.botId)).toEqual(["nova", "juno"]);
+    const queued = (await t.app.inject({ url: "/v1/tasks", headers: t.as("me") })).json();
+    expect(queued.every((x: { assignedBy: string }) => x.assignedBy === "chief")).toBe(true);
+
+    await t.flush();
+    const notes = (await t.app.inject({ url: "/v1/notifications", headers: t.as("me") })).json();
+    const by = (id: string) => notes.filter((n: { botId: string }) => n.botId === id);
+    expect(by("nova")).toHaveLength(1);
+    expect(by("juno")).toHaveLength(1);
+    expect(by("chief")).toHaveLength(1);
+    expect(by("chief")[0].text).toContain("2 of 2");
+  });
+
+  it("refuses assignments to bots outside the desk crew", async () => {
+    const t = setup();
+    const r = (await tool(t, "me", "chief", "delegate_to_bot", { goal: "x", assignments: [{ botId: "pillpal", title: "y" }] })).json();
+    expect(r.error).toContain("Not on your team");
+  });
+
+  it("every bot has a look", async () => {
+    const t = setup();
+    const bots = (await t.app.inject({ url: "/v1/bots", headers: t.as("u") })).json();
+    expect(bots.find((b: { id: string }) => b.id === "chief")).toBeTruthy();
+    for (const b of bots) expect(b.appearance?.archetype, b.id).toBeTruthy();
+  });
+});
+
 describe("price watch job", () => {
   it("announces a new sale once", async () => {
     const t = setup({ quotes: { coffee: { product: "coffee", description: "Folgers Classic Roast", regular: 9.99, promo: 7.49 } } });

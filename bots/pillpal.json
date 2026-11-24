@@ -14,7 +14,10 @@
   ],
   "idleBehaviors": [
     "tidy_pills",
-    "hum"
+    "hum",
+    "offer_water",
+    "check_off_list",
+    "gentle_wave"
   ],
   "placement": {
     "anchorLabel": "Pill organizer",
@@ -36,5 +39,25 @@
         "dwellMillis": 1200
       }
     ]
+  },
+  "appearance": {
+    "archetype": "Gentle nurse",
+    "outfit": "Soft teal scrubs, cardigan, comfy shoes, little heart pin",
+    "palette": [
+      "#3AAFA9",
+      "#FFFFFF",
+      "#F7A1A1"
+    ],
+    "props": [
+      "tiny pill organizer",
+      "water cup",
+      "checklist"
+    ],
+    "signatureMoves": [
+      "offer_water",
+      "check_off_list",
+      "gentle_wave"
+    ],
+    "bodyLanguage": "Slow, calm movements; kneels to eye level"
   }
 }

@@ -36,6 +36,7 @@ class BotDirectorTest {
             perception.also { perceived += botId to kind }
         override fun callTool(botId: String, name: String, argumentsJson: String): String {
             tools += "$botId:$name"
+            if (name == "delegate_to_bot") return """{"missionId":"m1","tasks":[{"taskId":"a","botId":"nova","title":"x"},{"taskId":"b","botId":"juno","title":"y"}]}"""
             return if (name == "create_task") """{"taskId":"t9","status":"queued"}""" else """{"ok":true}"""
         }
         override fun notifications() = pending.also { pending = emptyList() }
@@ -118,6 +119,41 @@ class BotDirectorTest {
         h.director.checkNotifications()
         assertEquals(BotState.NOTICING, h.director.state("nova"))
         assertTrue(h.said.last().second.startsWith("Task finished: Compare glasses"))
+    }
+
+    @Test
+    fun chiefDelegatesAndTheTeamGetsToWork() {
+        val h = Harness(roster)
+        h.director.onFrame(SensorFrame(noon, 0, head, gaze, emptyMap()))
+        h.director.summon("chief")
+        h.listeners.getValue("chief").onToolCall("c1", "delegate_to_bot", """{"goal":"trip"}""")
+        assertEquals(BotState.WORKING, h.director.state("nova"))
+        assertEquals(BotState.WORKING, h.director.state("juno"))
+
+        h.backend.pending = listOf(BotNotification("nova", "Task finished: x", "t", taskId = "a"))
+        h.director.checkNotifications()
+        assertEquals(BotState.NOTICING, h.director.state("nova"))
+        assertEquals(BotState.WORKING, h.director.state("juno"), "still on its assignment")
+    }
+
+    @Test
+    fun newsDuringQuietHoursIsHeldUntilYouTalk() {
+        val h = Harness(roster)
+        h.director.onFrame(SensorFrame(LocalDateTime.of(2026, 11, 24, 23, 0), 0, head, gaze, emptyMap()))
+        h.backend.pending = listOf(BotNotification("nova", "Task finished: report", "t", taskId = "z"))
+        h.director.checkNotifications()
+        assertTrue(h.said.isEmpty(), "quiet at night")
+        assertEquals(BotState.NOTICING, h.director.state("nova"))
+        assertEquals(1, h.director.heldMessages("nova").size)
+
+        h.director.summon("nova")
+        assertTrue(h.said.single().second.startsWith("While you were away: Task finished: report"))
+        assertTrue(h.director.heldMessages("nova").isEmpty())
+    }
+
+    @Test
+    fun everyBotHasALook() {
+        for (bot in roster) assertTrue(bot.appearance?.signatureMoves?.isNotEmpty() == true, bot.id)
     }
 
     @Test

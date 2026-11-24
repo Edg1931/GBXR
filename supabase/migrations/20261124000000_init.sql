@@ -125,6 +125,12 @@ create table notifications (
   at timestamptz not null default now()
 );
 
+-- Exactly-once markers for background jobs (service role only; no policies).
+create table claims (
+  key text primary key,
+  claimed_at timestamptz not null default now()
+);
+
 -- Row level security ---------------------------------------------------------
 
 alter table profiles enable row level security;
@@ -139,6 +145,7 @@ alter table sightings enable row level security;
 alter table care_events enable row level security;
 alter table alerts enable row level security;
 alter table notifications enable row level security;
+alter table claims enable row level security;
 
 -- Owner-only tables.
 create policy own on tasks for all using (user_id = auth.uid()) with check (user_id = auth.uid());

@@ -12,7 +12,9 @@
   ],
   "idleBehaviors": [
     "scan_room",
-    "sort_envelopes"
+    "sort_envelopes",
+    "inspect_letter",
+    "stamp_warning"
   ],
   "placement": {
     "anchorLabel": "Mail table",
@@ -26,5 +28,25 @@
         "requireSceneChange": true
       }
     ]
+  },
+  "appearance": {
+    "archetype": "Security guard",
+    "outfit": "Navy security uniform, badge, earpiece, flashlight on belt",
+    "palette": [
+      "#1B263B",
+      "#E0E1DD",
+      "#E63946"
+    ],
+    "props": [
+      "magnifying glass",
+      "red stamp",
+      "flashlight"
+    ],
+    "signatureMoves": [
+      "inspect_letter",
+      "stamp_warning",
+      "scan_room"
+    ],
+    "bodyLanguage": "Alert stance, squints at suspicious mail, protective arm out"
   }
 }

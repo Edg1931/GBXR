@@ -19,8 +19,15 @@ It's built for two audiences that share one engine:
 
   Family members see a daily summary and alerts, limited to what the senior
   chooses to share.
-- **Everyone**: a desk crew (Nova the researcher, Juno the scheduler) you can
-  talk to and delegate work to.
+- **Everyone**: a desk crew you can talk to and delegate work to: Chief the
+  team leader, Nova the nerdy researcher, and Juno the executive secretary.
+  Tell Chief a goal and it hands assignments to the others. You watch them get
+  to work on your desk, each teammate reports its piece, and Chief sums up when
+  the whole team is done.
+
+Every bot has a look that matches its personality (outfit, colors, props,
+signature moves). See [docs/CHARACTERS.md](docs/CHARACTERS.md) for the crew and
+ready-to-paste prompts for making their 3D avatars, from a phone or a PC.
 
 ## How it works
 
@@ -61,8 +68,9 @@ It's built for two audiences that share one engine:
 | Path | What | Status |
 |---|---|---|
 | `bots/` | Bot profiles (personality, voice, instructions, tools, placement) | Shared by app and backend |
-| `core/` | Pure-Kotlin engine: placement triggers, state machine, speak policy, medication schedule, realtime voice client, backend client, `BotDirector` | **Built and tested here** (17 tests) |
-| `backend/` | TypeScript/Fastify: voice sessions, camera checks, tools, caregiver sharing, jobs | **Built and tested here** (16 tests) |
+| `core/` | Pure-Kotlin engine: placement triggers, state machine, speak policy, medication schedule, realtime voice client, backend client, `BotDirector` | **Built and tested here** (20 tests) |
+| `backend/` | TypeScript/Fastify: voice sessions, camera checks, tools (incl. Chief's team delegation), caregiver sharing, jobs | **Built and tested here** (19 tests) |
+| `docs/CHARACTERS.md` | Each bot's look and its 3D-avatar prompt | Generated from the bot profiles |
 | `supabase/migrations/` | Postgres schema with row-level security for multi-user and caregiver scopes | **Checked on Postgres 16** |
 | `android/` | Android XR + phone app: audio, CameraX, XR stage, 2D companion UI | **Not compiled yet**: needs the Android SDK (see below) |
 
