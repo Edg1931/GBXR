@@ -3,7 +3,20 @@
 Every bot's look comes from the `appearance` section of its profile in the `bots` folder. This guide is
 generated from those profiles. Use it to make the 3D avatars, from a phone or a PC.
 
-## How to make an avatar (no PC needed)
+## Avatars included now
+
+Every bot already has a working placeholder avatar in `android/src/main/assets/avatars/`: a
+stylized figure in its outfit colors, holding its props, with all the animations the app plays.
+
+![Chief, Nova, Juno and Pantry](images/desk_crew.png)
+
+![The whole crew doing their signature moves](images/crew_lineup.png)
+
+They're generated from the bot profiles by `tools/avatars/make_avatars.py`; rerun it after changing
+a bot's appearance. To upgrade a bot to an artist-made or AI-made model, follow the steps below and
+replace its `.glb` with one of the same name and the same animation names.
+
+## How to make a better avatar (no PC needed)
 
 1. Open an AI text-to-3D site in your phone browser (for example Meshy or Tripo).
 2. Paste the bot's **3D prompt** below. Generate a few, then pick the one that best matches the personality.
