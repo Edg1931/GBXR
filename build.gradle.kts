@@ -1,6 +1,2 @@
-plugins {
-    kotlin("jvm") version "2.1.20" apply false
-    kotlin("android") version "2.1.20" apply false
-    kotlin("plugin.serialization") version "2.1.20" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20" apply false
-}
+// Plugins are declared per module: :core is plain Kotlin/JVM (builds anywhere),
+// :android needs Google's Android Gradle Plugin (only when an SDK is present).

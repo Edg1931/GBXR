@@ -34,7 +34,7 @@ jobs:
         run: |
           for a in xr/runtime/runtime xr/scenecore/scenecore xr/arcore/arcore xr/compose/compose; do
             g=$(dirname $a); n=$(basename $a)
-            echo "androidx.$g:$n -> $(curl -s https://dl.google.com/android/maven2/androidx/$g/$n/maven-metadata.xml | grep -o '<versions>.*' | grep -oE '[0-9][^<]*' | tail -4 | tr '\n' ' ')"
+            echo "androidx.$g:$n -> $(curl -s https://dl.google.com/android/maven2/androidx/$g/$n/maven-metadata.xml | grep -oE '<version>[^<]+' | sed 's/<version>//' | tail -5 | tr '\n' ' ')"
           done
           echo "AGP -> $(curl -s https://dl.google.com/android/maven2/com/android/tools/build/gradle/maven-metadata.xml | grep -oE '<version>8\.[0-9]+\.[0-9]+</version>' | tail -3 | tr '\n' ' ')"
       - name: Core engine tests

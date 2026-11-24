@@ -4,8 +4,8 @@
 // fix any renamed APIs in xr/XrStage.kt (the only file that touches them).
 plugins {
     id("com.android.application") version "8.13.0"
-    kotlin("android")
-    id("org.jetbrains.kotlin.plugin.compose")
+    kotlin("android") version "2.1.20"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
 }
 
 android {
