@@ -118,7 +118,13 @@ class XrStage(private val activity: Activity) {
 
     fun anchorPositions(): Map<String, Vec3> = anchors.mapValues { (_, a) -> a.state.value.pose.translation.toVec3() }
 
+    /** Missing or broken avatar files are skipped (the bot still works by voice and panel). */
     private suspend fun attachAvatar(bot: BotProfile, anchor: Anchor) {
+        runCatching { loadAvatar(bot, anchor) }
+            .onFailure { android.util.Log.w("GBXR", "No avatar for ${bot.id} (${bot.avatar}): ${it.message}") }
+    }
+
+    private suspend fun loadAvatar(bot: BotProfile, anchor: Anchor) {
         val model = GltfModel.create(session, Paths.get("avatars", bot.avatar))
         val entity = GltfModelEntity.create(session, model)
         entity.parent = AnchorSpace.create(session, anchor) // follows the anchor in the room
