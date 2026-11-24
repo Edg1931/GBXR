@@ -3,9 +3,9 @@
 // from https://developer.android.com/jetpack/androidx/releases/xr-scenecore and
 // fix any renamed APIs in xr/XrStage.kt (the only file that touches them).
 plugins {
-    id("com.android.application") version "8.13.0"
-    kotlin("android") version "2.1.20"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
+    id("com.android.application") version "8.13.2"
+    kotlin("android") version "2.2.21"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.21"
 }
 
 android {
@@ -45,10 +45,10 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.5.1")
 
     // Jetpack XR (pre-release; update versions).
-    implementation("androidx.xr.runtime:runtime:1.0.0-alpha06")
-    implementation("androidx.xr.scenecore:scenecore:1.0.0-alpha07")
-    implementation("androidx.xr.arcore:arcore:1.0.0-alpha06")
-    implementation("androidx.xr.compose:compose:1.0.0-alpha07")
+    implementation("androidx.xr.runtime:runtime:1.0.0")
+    implementation("androidx.xr.scenecore:scenecore:1.0.0")
+    implementation("androidx.xr.arcore:arcore:1.0.0")
+    implementation("androidx.xr.compose:compose:1.0.0-rc01")
 }
 
 // Ship the shared bot profiles (repo-level bots folder) inside the APK as assets/bots.
