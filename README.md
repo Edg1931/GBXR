@@ -72,7 +72,7 @@ ready-to-paste prompts for making their 3D avatars, from a phone or a PC.
 | `backend/` | TypeScript/Fastify: voice sessions, camera checks, tools (incl. Chief's team delegation), caregiver sharing, jobs | **Built and tested here** (19 tests) |
 | `docs/CHARACTERS.md` | Each bot's look and its 3D-avatar prompt | Generated from the bot profiles |
 | `supabase/migrations/` | Postgres schema with row-level security for multi-user and caregiver scopes | **Checked on Postgres 16** |
-| `android/` | Android XR + phone app: audio, CameraX, XR stage, 2D companion UI | **Not compiled yet**: needs the Android SDK (see below) |
+| `android/` | Android XR + phone app: audio, CameraX, XR stage (Jetpack XR 1.0), 2D companion UI | **Builds in CI** into a debug APK; not yet tried on a device |
 
 ## Running it
 
@@ -91,13 +91,13 @@ gradle :core:test
 ```
 
 ### Android app
-Open the repo in Android Studio (the `:android` module is included once an SDK
-is configured), update the Jetpack XR versions in `android/build.gradle.kts`,
-and run it on the Android XR emulator, a Galaxy XR headset, or a phone. Pass
-`-Pgbxr.backendUrl=https://your-server` to point it at a deployed backend.
-`android/src/main/kotlin/com/gbxr/app/xr/XrStage.kt` and `xr/XrPanel.kt` are the
-only files that use the pre-release XR APIs. Expect to fix a few names there on
-first build. Avatars (`.glb`) go in `android/src/main/assets/avatars/`.
+Every push builds a debug APK on GitHub Actions (workflow **Build**, artifact
+`gbxr-debug-apk`). To build it yourself, open the repo in Android Studio (the
+`:android` module is included once an Android SDK is configured). Pass
+`-Pgbxr.backendUrl=https://your-server` to point the app at a deployed backend.
+`android/src/main/kotlin/com/gbxr/app/xr/XrStage.kt` is the only file that uses
+the Jetpack XR APIs. Avatars (`.glb`) go in `android/src/main/assets/avatars/`;
+bots without one still work by voice and from the panel.
 
 ## Accounts: you and everyone else
 
@@ -131,7 +131,8 @@ first build. Avatars (`.glb`) go in `android/src/main/assets/avatars/`.
 ## Next steps
 
 - [ ] Supabase-backed `Store` (replace `MemoryStore`) and supabase-kt sign-in in the app
-- [ ] Compile the Android module; fix XR API names against the current Jetpack XR release
+- [ ] First run on Galaxy XR and Project Aura; tune panel size for glasses
+- [ ] Host the backend over HTTPS and point the app at it
 - [ ] Move phone reminders to AlarmManager/WorkManager so they survive the app being closed
 - [ ] Caregiver web dashboard (summary + alerts endpoints are ready)
 - [ ] Push notifications for urgent caregiver alerts (FCM)
