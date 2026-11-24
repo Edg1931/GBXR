@@ -36,6 +36,7 @@ import java.util.UUID
  *  - load each bot's glTF avatar and play the animation for its state
  *  - report head position/direction and anchor positions for the place-bot engine
  */
+@OptIn(ExperimentalGltfAnimationApi::class)
 class XrStage(private val activity: Activity) {
     private lateinit var session: Session
     private val anchors = mutableMapOf<String, Anchor>() // anchorId -> anchor
@@ -95,11 +96,10 @@ class XrStage(private val activity: Activity) {
     }
 
     /** Plays the avatar animation named after the state (falls back to "idle"). */
-    @OptIn(ExperimentalGltfAnimationApi::class)
     fun play(botId: String, state: BotState) {
-        val avatar = avatars[botId] ?: return
-        val anim = avatar.animations.firstOrNull { it.name == state.animation }
-            ?: avatar.animations.firstOrNull { it.name == BotState.IDLE.animation }
+        val clips = animationsOf(avatars[botId] ?: return)
+        val anim = clips.firstOrNull { it.name == state.animation }
+            ?: clips.firstOrNull { it.name == BotState.IDLE.animation }
             ?: return
         playing.remove(botId)?.takeIf { it !== anim }?.stop()
         anim.start(GltfAnimationStartOptions(state != BotState.NOTICING))
@@ -126,6 +126,15 @@ class XrStage(private val activity: Activity) {
         avatars[bot.id] = entity
         play(bot.id, BotState.IDLE)
     }
+
+    /**
+     * GltfModelEntity.getAnimations() exists in SceneCore 1.0 but is not
+     * visible from Kotlin source yet, so read it through the Java getter.
+     */
+    private fun animationsOf(entity: GltfModelEntity): List<GltfAnimation> =
+        runCatching {
+            (entity.javaClass.getMethod("getAnimations").invoke(entity) as List<*>).filterIsInstance<GltfAnimation>()
+        }.getOrDefault(emptyList())
 
     /** Rotate -Z (forward in OpenXR) by the pose's rotation. */
     private fun forwardOf(p: Pose): Vector3 {
