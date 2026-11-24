@@ -39,7 +39,7 @@ async function runTask(ctx: Ctx, task: Task) {
     });
     Object.assign(task, { status: "done", result });
     await save({ status: "done", result });
-    await ctx.store.notify({ userId: ctx.userId, botId: ctx.bot.id, text: `Task finished: ${task.title}`, at: ctx.now().toISOString() });
+    await ctx.store.notify({ userId: ctx.userId, botId: ctx.bot.id, text: `Task finished: ${task.title}`, at: ctx.now().toISOString(), taskId: task.id });
   } catch (e) {
     await save({ status: "failed", result: e instanceof Error ? e.message : String(e) });
   }

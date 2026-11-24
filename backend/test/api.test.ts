@@ -195,7 +195,7 @@ describe("delegation and companions", () => {
     expect(tasks[0].status).toBe("done");
     expect(tasks[0].result).toContain("research brief");
     const notes = (await t.app.inject({ url: "/v1/notifications", headers: t.as("me") })).json();
-    expect(notes[0]).toMatchObject({ botId: "nova", text: "Task finished: Compare AR glasses" });
+    expect(notes[0]).toMatchObject({ botId: "nova", text: "Task finished: Compare AR glasses", taskId: r.taskId });
   });
 
   it("shares stories with family only when the stories scope is granted", async () => {

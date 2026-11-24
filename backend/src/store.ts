@@ -106,6 +106,8 @@ export interface Notification {
   botId: string;
   text: string;
   at: string;
+  /** Set when this reports a finished delegated task. */
+  taskId?: string;
 }
 
 export interface Store {
