@@ -37,6 +37,23 @@ jobs:
             echo "androidx.$g:$n -> $(curl -s https://dl.google.com/android/maven2/androidx/$g/$n/maven-metadata.xml | grep -oE '<version>[^<]+' | sed 's/<version>//' | tail -5 | tr '\n' ' ')"
           done
           echo "AGP -> $(curl -s https://dl.google.com/android/maven2/com/android/tools/build/gradle/maven-metadata.xml | grep -oE '<version>8\.[0-9]+\.[0-9]+</version>' | tail -3 | tr '\n' ' ')"
+      - name: Print Jetpack XR 1.0 API (temporary, for porting)
+        continue-on-error: true
+        run: |
+          ./gradlew :android:dependencies --configuration debugCompileClasspath -q > /dev/null 2>&1 || true
+          mkdir -p /tmp/xrapi && cd /tmp/xrapi
+          for lib in scenecore-1.0.0 runtime-1.0.0 arcore-1.0.0; do
+            aar=$(find ~/.gradle/caches -name "$lib.aar" | head -1); [ -z "$aar" ] && continue
+            mkdir -p $lib && unzip -o -q "$aar" classes.jar -d $lib
+          done
+          for jar in */classes.jar; do
+            echo "== $jar classes (filtered)"; unzip -l $jar | grep -oE 'androidx/xr/[A-Za-z/]+\.class' | grep -iE 'anchor|gltf|config|entity\.class|session\.class|ardevice|hittest|plane' | grep -v '\$' | sort | head -60
+          done
+          CP=$(ls */classes.jar | tr '\n' ':')
+          for c in androidx.xr.runtime.Config androidx.xr.scenecore.GltfModelEntity androidx.xr.scenecore.Entity androidx.xr.scenecore.AnchorEntity androidx.xr.scenecore.GltfModel androidx.xr.arcore.Anchor androidx.xr.arcore.ArDevice androidx.xr.runtime.Session; do
+            echo "== $c"; javap -cp "$CP" -public $c 2>&1 | grep -vE 'Companion|synthetic|component[0-9]|copy\$default' | head -45
+          done
+          javap -cp "$CP" -public 'androidx.xr.runtime.Config$PlaneTrackingMode' 'androidx.xr.runtime.Config$HeadTrackingMode' 'androidx.xr.runtime.Config$AnchorPersistenceMode' 'androidx.xr.runtime.Config$DeviceTrackingMode' 2>&1 | grep -E 'class|public static final' | head -30
       - name: Core engine tests
         run: ./gradlew :core:test --console=plain
       - name: Build the Android XR app (debug APK)
