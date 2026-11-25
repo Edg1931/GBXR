@@ -2,3 +2,4 @@
 # Copied from ../bots at deploy time
 bots/
 .vercel/
+public/

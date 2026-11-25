@@ -8,7 +8,7 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "vercel-build": "rm -rf bots && cp -r ../bots bots && tsc --noEmit",
+    "vercel-build": "rm -rf bots && cp -r ../bots bots && mkdir -p public && tsc --noEmit",
     "test:pg": "PG_TEST_URL=${PG_TEST_URL:?set PG_TEST_URL} vitest run"
   },
   "engines": {
